@@ -1,5 +1,5 @@
-# install.packages("remotes")
-# remotes::install_github("JosiahParry/populartimes")
+# install.packages('remotes')
+# remotes::install_github('JosiahParry/populartimes')
 
 library(populartimes)
 
@@ -12,7 +12,7 @@ popular_times_graph <- function(place_name, address, day_week, day_number) {
       df_place <- as.data.frame(get_place) %>%
         mutate(place_name = place_name) %>%
         mutate(address = address) %>%
-        mutate(status = 200)# add place name and address for marker popup
+        mutate(status = 200) # add place name and address for marker popup
       
       # get popular times
       popular_times <- as.data.frame(get_place$popular_times)
@@ -20,35 +20,48 @@ popular_times_graph <- function(place_name, address, day_week, day_number) {
                                day_of_week == day_number,
                                select = c(hour, popularity))
       
+      # sort popularity by hour
+      s_popularity <- day_popularity[order(day_popularity$hour),]
+      
+      # convert hour to 12 hour time
+      df_popularity <- s_popularity %>%
+        mutate(time = format(strptime(paste(hour, ':00:00', sep = ''), format = '%H:%M:%S'), '%I %p'))
+      
       # select popularity
-      popularity <- day_popularity %>% select(popularity)
+      popularity <- df_popularity %>% select(popularity)
+      # popularity <- day_popularity %>% select(popularity)
       
       # select popularity time
-      hour <- day_popularity %>% select(hour)
+      time <- df_popularity %>% select(time)
+      # hour <- day_popularity %>% select(hour)
       
       # graph name (popularity_date_time)
-      file_name <- format(Sys.time(), "popularity_%Y%m%d_%H%M%S")
-      file_path <- "D:\\Codes\\r_cavitex\\google_popular_times\\bar_graphs\\"
+      file_name <- format(Sys.time(), 'popularity_%Y%m%d_%H%M%S')
+      file_path <- 'D:\\Codes\\r_cavitex\\google_popular_times\\bar_graphs\\'
       # paste directory; file_name; extension
-      graph_file <- paste(file_path, file_name, ".png", sep = "")
+      graph_file <- paste(file_path, file_name, '.png', sep = '')
       
       # graph png file; png size
-      png(file = graph_file, height = 700, width = 1000, units = "px")
+      png(file = graph_file, height = 800, width = 1500, units = 'px')
       
       # create bar graph
       barplot.default(
         popularity$popularity,
-        names.arg = hour$hour,
-        ylab = "Popularity",
-        xlab = "Hour",
-        main = paste(place_name, " - ", day_week),
-        col = "#46923C"
+        names.arg = time$time,
+        # names.arg = hour$hour,
+        ylab = 'Popularity',
+        xlab = 'Hour',
+        main = paste(place_name, ' - ', day_week),
+        col = '#46923C'
       )
       
       # save as png file
       while (!is.null(dev.list())) dev.off()
       
-      return(df_place)
+      # add file
+      return(df_place %>% mutate(
+        file = graph_file
+      ))
     },
     error = function(cond) {
       status <- c(500)
@@ -61,7 +74,7 @@ popular_times_graph <- function(place_name, address, day_week, day_number) {
       return(err)
     },
     finally = {
-      message("Finally")
+      message('Finally')
     }
   )
   

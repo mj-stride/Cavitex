@@ -1,17 +1,17 @@
 get_week_of_day <-function(day) {
-  if (day == "Monday") {
+  if (day == 'Monday') {
     return(1)
-  } else if (day == "Tuesday") {
+  } else if (day == 'Tuesday') {
     return(2)
-  } else if (day == "Wednesday") {
+  } else if (day == 'Wednesday') {
     return(3)
-  } else if (day == "Thursday") {
+  } else if (day == 'Thursday') {
     return(4)
-  } else if (day == "Friday") {
+  } else if (day == 'Friday') {
     return(5)
-  } else if (day == "Saturday") {
+  } else if (day == 'Saturday') {
     return(6)
-  } else if (day == "Sunday") {
+  } else if (day == 'Sunday') {
     return(7)
   }
 }

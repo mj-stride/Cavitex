@@ -1,8 +1,8 @@
-# install.packages("shiny")
+# install.packages('shiny')
 
 # r file
-source("D:\\Codes\\r_cavitex\\google_popular_times\\get_week_of_day.R")
-source("D:\\Codes\\r_cavitex\\google_popular_times\\google_popular_times.R")
+source('D:\\Codes\\r_cavitex\\google_popular_times\\get_week_of_day.R')
+source('D:\\Codes\\r_cavitex\\google_popular_times\\google_popular_times.R')
 
 library(shiny)
 library(tidyverse)
@@ -12,37 +12,39 @@ library(leaflet)
 ui <- fillPage(
   tags$head(
     tags$style(
-      type = "text/css",
-      "body { height: 100%; background-color: white; }",
-      ".fill-25 { float: left; width: 25%; height: 100%; }",
-      ".fill-75 { float: right; width: 75%; height: 100%;}",
-      "#id_place_name { border: 2px solid #46923C; }",
-      "#id_address { border: 2px solid #46923C; }",
-      "#id_search { float: right; background-color: #46923C; color: white; border: 2px solid #46923C }"
+      HTML(
+        'body { height: 100%; background-color: white; }',
+        '.fill-25 { float: left; width: 40%; height: 100%; }',
+        '.fill-75 { float: right; width: 60%; height: 100%;}',
+        '#id_search { float: right; background-color: #46923C; color: white; border: 2px solid #46923C }'
+      )
     )
   ),
   # left panel
   div(
-    class = "fill-25",
+    class = 'fill-25',
     # search
     div(
-      style = "padding: 10px; margin-bottom: 30px",
-      h3("Google Popular Times", style = "font-weight: bold; color: #46923C;"), # title
-      textInput(inputId = "id_place_name", label = "Place name", width = "100%"), # place name
-      textInput(inputId = "id_address", label = "Address", width = "100%"), # address
-      actionButton(inputId = "id_search", label = "Search"), # button
+      style = 'padding: 10px; margin-bottom: 30px',
+      h3('Google Popular Times', style = 'font-weight: bold; color: #46923C;'), # title
+      textInput(inputId = 'id_place_name', label = 'Place name', width = '100%'), # place name
+      textInput(inputId = 'id_address', label = 'Address', width = '100%'), # address
+      actionButton(inputId = 'id_search', label = 'Search'), # button
+    ),
+    # week picker
+    div(
+      style = 'padding: 10px;',
+      uiOutput(outputId = 'id_week'),
     ),
     # graph
-    div(
-      plotOutput(outputId = "id_graph", width = "100%")
-    )
+    imageOutput(outputId = 'id_graph')
   ),
   # right panel
   # map
   div(
-    id = "id_map_default",
-    class = "fill-75",
-    leafletOutput(outputId = "id_map", width = "100%", height = "100%")
+    id = 'id_map_default',
+    class = 'fill-75',
+    leafletOutput(outputId = 'id_map', width = '100%', height = '100%')
   )
 )
 
@@ -50,7 +52,7 @@ ui <- fillPage(
 server <- function(input, output, session) {
   # default map view
   output$id_map <- renderLeaflet({
-    leaflet(height = "100%") %>%
+    leaflet(height = '100%') %>%
       addTiles() %>%
       setView(
         lng = 121.7740,
@@ -59,14 +61,16 @@ server <- function(input, output, session) {
       )
   })
   
+  # search place; show map
   observeEvent(
     input$id_search, {
       # get text input
-      place_name <- input$id_place_name
-      place_address <- input$id_address
+      place_name <<- input$id_place_name
+      place_address <<- input$id_address
       
-      if (place_name != "") {
-        if (place_address != "") {
+      # search place information checker
+      if (place_name != '') {
+        if (place_address != '') {
           
           # get day of week
           day_week <- weekdays(Sys.Date())
@@ -81,44 +85,36 @@ server <- function(input, output, session) {
           )
           
           if (df_place$status != 500) {
-            # for graph - start
-            # get popular times
-            popular_times <- as.data.frame(df_place$popular_times)
-            day_popularity <- subset(popular_times,
-                                     day_of_week == day_number,
-                                     select = c(hour, popularity))
-            
-            # select popularity
-            popularity <- day_popularity %>% select(popularity)
-            
-            # select popularity time
-            hour <- day_popularity %>% select(hour)
-            # for graph - end
-            
-            # show bar graph
-            output$id_graph <- renderPlot({
-              # create bar graph
-              barplot.default(
-                popularity$popularity,
-                names.arg = hour$hour,
-                # ylab = "Popularity",
-                xlab = "Hour",
-                main = paste(place_name, day_week, sep = " - "),
-                col = "#46923C"
+            # show week picker
+            output$id_week <- renderUI({
+              selectInput(
+                inputId = 'id_week_of_day',
+                width = '100%',
+                label = 'Week of the day',
+                choices = list('Monday', 'Tuesday', 'Wednesday',
+                               'Thursday', 'Friday', 'Saturday', 'Sunday'),
+                selected = day_week,
+                multiple = FALSE
               )
             })
             
+            # delete file
+            # create 2 graph file, remove redundant file
+            if (file.exists(df_place$file)) {
+              file.remove(df_place$file)
+            }
+            
             # show map
             output$id_map <- renderLeaflet({
-              leaflet(height = "100%") %>%
+              leaflet(height = '100%') %>%
                 addTiles() %>%
                 addMarkers(
                   data = df_place,
                   lng = ~lat,
                   lat = ~lon,
-                  popup = paste(paste("<b>Name:</b>", df_place$place_name, sep = " "),
-                                paste("<b>Address:</b>", df_place$address, sep = " "),
-                                sep = "\n")
+                  popup = paste(paste('<b>Name:</b>', df_place$place_name, sep = ' '),
+                                paste('<b>Address:</b>', df_place$address, sep = ' '),
+                                sep = '\n')
                 )
             })
             
@@ -126,11 +122,11 @@ server <- function(input, output, session) {
             # invalid place name and address
             showModal(
               modalDialog(
-                title = "Failed to load map",
-                "Invalid place name and/or address.",
+                title = 'Failed to load map',
+                'Invalid place name and/or address.',
                 easyClose = TRUE,
                 footer = div(
-                  modalButton("Close")
+                  modalButton('Close')
                 )
               )
             )
@@ -140,11 +136,11 @@ server <- function(input, output, session) {
           # empty address
           showModal(
             modalDialog(
-              title = "Failed to search place",
-              "Address should not be left blank.",
+              title = 'Failed to search place',
+              'Address should not be left blank.',
               easyClose = TRUE,
               footer = div(
-                modalButton("Close")
+                modalButton('Close')
               )
             )
           )
@@ -153,15 +149,38 @@ server <- function(input, output, session) {
         # empty place name
         showModal(
           modalDialog(
-            title = "Failed to search place",
-            "Place name should not be left blank.",
+            title = 'Failed to search place',
+            'Place name should not be left blank.',
             easyClose = TRUE,
             footer = div(
-              modalButton("Close")
+              modalButton('Close')
             )
           )
         )
       }
+    }
+  )
+  
+  # week of the day picker
+  observeEvent(
+    input$id_week_of_day, {
+      # get day of week
+      # day_week <- weekdays(Sys.Date())
+      day_number <- get_week_of_day(input$id_week_of_day)
+      
+      # get place information
+      df_place <- popular_times_graph(
+        place_name,
+        place_address,
+        input$id_week_of_day,
+        day_number
+      )
+      
+      # show bar graph
+      output$id_graph <- renderImage(
+        list(src = df_place$file, width = '100%', height = '300px'),
+        deleteFile = FALSE
+      )
     }
   )
 }
