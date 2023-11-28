@@ -67,4 +67,4 @@ for (i in 1:dfjams_length) {
 }
 
 # display map and legend
-# map_combined
+map_combined

@@ -40,6 +40,13 @@ ui <- fillPage(
       value = Sys.time(),
       seconds = FALSE
     ),
+    selectInput(
+      inputId = 'id_type',
+      label = 'Choose alert type',
+      choices = c('All', 'Jam', 'Road Closed', 'Hazard', 'Accident'),
+      width = '100%',
+      selected = 'All',
+    ),
     actionButton(
       class = 'id_search',
       inputId = 'id_search',
@@ -60,7 +67,7 @@ default <- function(input, output) {
   file <- paste(file_path, '.json', sep = '')
   
   if (file.exists(file)) {
-    map <- draw_poly_map(file)
+    map <- draw_poly_map(file, 'All')
     
     output$id_map_waze <- renderUI({
       div(
@@ -83,6 +90,7 @@ default <- function(input, output) {
 }
 
 server <- function(input, output, session) {
+  # default output, for first load
   default(input, output)
   
   observeEvent(
@@ -95,7 +103,9 @@ server <- function(input, output, session) {
       file <- paste(file_path, '.json', sep = '')
       
       if (file.exists(file)) {
-        map <- draw_poly_map(file)
+        type <- input$id_type
+        
+        map <- draw_poly_map(file, type)
         
         output$id_map_waze <- renderUI({
           div(

@@ -2,15 +2,18 @@ library(jsonlite)
 library(tidyverse)
 library(leaflet)
 
-draw_poly_map <- function(file_name) {
+draw_poly_map <- function(file_name, type) {
+  type_ <- gsub(" ", "_", toupper(type))
+  print(type_)
+  
   waze_data <- fromJSON(file_name)
   # print(waze_data)
   
   # extract alerts data
-  df_alerts <- as.data.frame(waze_data$alerts)
+  dfalerts <- as.data.frame(waze_data$alerts)
   
   # check alert type and set marker color
-  map_dfcolor <- dfalerts %>%
+  map_dfalerts <- dfalerts %>%
     mutate(color = case_when(str_detect(type, "JAM") ~ "green",
                              str_detect(type, "ROAD_CLOSED") ~ "blue",
                              str_detect(type, "HAZARD") ~ "orange",
@@ -43,11 +46,11 @@ draw_poly_map <- function(file_name) {
       opacity = 1
     ) %>%
     addCircleMarkers(
-      data = dfalerts,
+      data = map_dfalerts,
       lng = ~location.x,
       lat = ~location.y,
       popup = ~subtype,
-      color = map_dfcolor$color,
+      color = ~color,
       opacity = 1,
       fillOpacity = 1,
       weight = 2,
