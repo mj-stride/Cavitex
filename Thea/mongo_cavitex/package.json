@@ -1,0 +1,24 @@
+{
+  "name": "mongo_cavitex",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "strideXcavitex",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "chalk": "^5.3.0",
+    "date-and-time": "^3.0.3",
+    "dateformat": "^5.0.3",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "moment": "^2.29.4",
+    "moment-timezone": "^0.5.43",
+    "mongodb": "^6.2.0",
+    "mongoose": "^8.0.0"
+  }
+}
