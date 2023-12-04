@@ -1,10 +1,11 @@
 library(shiny)
+library(shinyTime)
+library(shinycssloaders)
 library(jsonlite)
 library(tidyverse)
 library(reticulate)
 library(later)
 library(lares)
-library(shinyTime)
 library(lubridate)
 
 # for google popular times
@@ -16,6 +17,7 @@ source_python('D:\\Codes\\cavitex\\google_popular_times\\api\\api.py')
 
 # for waze
 source('D:\\Codes\\cavitex\\waze\\draw_waze.R')
+source('D:\\Codes\\cavitex\\waze\\waze_format.R')
 date_now = format(Sys.time(), '%Y-%m-%d')
 folder_path <- 'D:\\Codes\\cavitex\\waze\\downloaded_waze'
 
@@ -24,7 +26,7 @@ ui <- fillPage(
     tags$style(
       HTML(
         'body { height: 100%; background-color: white; }',
-        '#id_search { float: right; background-color: #46923C; color: white; border: 2px solid #46923C; }'
+        '.id_search { float: right; background-color: #46923C; color: white; border: 2px solid #46923C; }'
       )
     )
   ),
@@ -32,9 +34,15 @@ ui <- fillPage(
     # position = c('fixed-top'),
     title = 'CAVITEX',
     tabPanel(
-      title = "Waze Data",
+      title = "Waze Data (in range)",
       uiOutput(
         outputId = 'id_waze'
+      )
+    ),
+    tabPanel(
+      title = "Waze Data (hourly)",
+      uiOutput(
+        outputId = 'id_waze_hour'
       )
     ),
     tabPanel(
@@ -46,7 +54,7 @@ ui <- fillPage(
   )
 )
 
-default <- function(input, output) {
+default_hour <- function(input, output) {
   file_path <- paste(folder_path, date_now, strftime(Sys.time(), '%H%M'), sep = '\\')
   file <- paste(file_path, '.json', sep = '')
   
@@ -74,50 +82,109 @@ default <- function(input, output) {
   }
 }
 
+default_range <- function(input, output) {
+  output$id_range_format <- renderUI({
+    waze_range('Time')
+  })
+}
+
 server <- function(input, output, session) {
-  # ========== WAZE FEEDS ========== #
+  # ========== WAZE FEEDS IN RANGE ========== #
   output$id_waze <- renderUI({
     sidebarLayout(
       sidebarPanel(
-        style = 'height: 50vh;',
+        style = 'height: 90vh;',
         width = 3,
-        dateInput(
-          inputId = 'id_date',
-          label = 'Choose date:',
-          min = '2023-01-01',
-          max = '2024-12-31',
-          value = date_now
-        ),
-        timeInput(
-          inputId = 'id_time',
-          label = 'Choose time (hour:minute):',
-          value = Sys.time(),
-          seconds = FALSE
-        ),
         selectInput(
-          inputId = 'id_type',
-          label = 'Choose type:',
-          choices = c('All', 'Jam', 'Road Closed', 'Hazard', 'Accident'),
-          selected = 'All',
+          inputId = 'id_range',
+          label = 'Choose range type:',
+          choices = c('Time', 'Date'),
+          selected = 'Time',
           width = '100%'
         ),
-        actionButton(
-          class = 'id_search',
-          inputId = 'id_search',
-          label = 'Search'
+        uiOutput(
+          outputId = 'id_range_format'
         )
       ),
       mainPanel(
         style = 'height: 100%;',
         width = 9,
-        uiOutput(
-          outputId = 'id_map_waze'
+        withSpinner(
+          color = '#46923C',
+          uiOutput(
+            outputId = 'id_waze_output'
+          )
         )
       )
     )
   })
+
+  # default_range(input, output)
+
+  observeEvent(
+    input$id_range, {
+      output$id_range_format <- renderUI({
+        waze_range(input$id_range)
+      })
+    }
+  )
   
-  default(input, output)
+  observeEvent(
+    input$id_search_range, {
+      date_start <- input$id_date_start
+
+      file <- paste(folder_path, date_start, sep = '\\')
+      
+      if (input$id_range == 'Time') {
+        folder <- paste(folder_path, date_start, sep = '\\')
+        
+        if (file.exists(folder)) {
+          time_start <- input$id_time_start
+          time_end <- input$id_time_end
+          
+          waze_draw_time(folder, time_start, time_end, input$id_type_range, 'Imus', output)
+          
+          output$id_waze_output <- renderUI({
+            div(
+              plotOutput(
+                outputId = 'id_plot'
+              ),
+              style = 'height: 90vh; overflow-y: auto;'
+            )
+          })
+          
+          # output$id_waze_output <- renderUI({
+          #   div(
+          #     graph,
+          #     style = 'height: 90vh; overflow-y: auto;'
+          #   )
+          # })
+        } else {
+          showModal(
+            modalDialog(
+              title = 'No file found',
+              'Please choose other date.',
+              easyClose = TRUE,
+              footer = div(
+                modalButton('Close')
+              )
+            )
+          )
+        }
+      } else {
+        date_end <- input$id_date_end
+        waze_draw_date(folder_path, date_start, date_end, input$id_type_range)
+      }
+
+    }
+  )
+  
+  # ========== WAZE FEEDS PER HOUR ========== #
+  output$id_waze_hour <- renderUI({
+    waze_hour()
+  })
+  
+  default_hour(input, output)
   
   observeEvent(
     input$id_search, {
@@ -128,9 +195,9 @@ server <- function(input, output, session) {
       file <- paste(file_path, '.json', sep = '')
       
       if (file.exists(file)) {
-        map <- draw_poly_map(file, input$id_type)
+        map <- waze_draw_hour(file, input$id_type_hour)
         
-        output$id_map_waze <- renderUI({
+        output$id_map_waze_hour <- renderUI({
           div(
             map,
             style = 'height: 90vh; overflow-y: auto;'
@@ -167,15 +234,27 @@ server <- function(input, output, session) {
         # week picker
         div(
           style = 'padding: 10px;',
-          uiOutput(outputId = 'id_week'),
+          uiOutput(
+            outputId = 'id_week'
+          )
         ),
         # graph
-        imageOutput(outputId = 'id_graph')
+        withSpinner(
+          color = '#46923C',
+          imageOutput(
+            outputId = 'id_graph'
+          )
+        )
       ),
       mainPanel(
         style = 'height: 90vh;',
         width = 8,
-        leafletOutput(outputId = 'id_map_gpt', width = '100%', height = '100%')
+        withSpinner(
+          color = '#46923C',
+          uiOutput(
+            outputId = 'id_map_gpt'
+          )
+        )
       )
     )
   })
@@ -225,17 +304,23 @@ server <- function(input, output, session) {
         day_number
       )
       
+      # create map
+      map <- leaflet(height = '100%') %>%
+        addTiles() %>%
+        addMarkers(
+          lng = as.double(address$coordinates.lng),
+          lat = as.double(address$coordinates.lat),
+          popup = paste(paste('<b>Name:</b>', input$id_toll_plaza, sep = ' '),
+                        paste('<b>Address:</b>', address$coordinates.address, sep = ' '),
+                        sep = '\n')
+        )
+      
       # render map
-      output$id_map_gpt <- renderLeaflet({
-        leaflet(height = '100%') %>%
-          addTiles() %>%
-          addMarkers(
-            lng = as.double(address$coordinates.lng),
-            lat = as.double(address$coordinates.lat),
-            popup = paste(paste('<b>Name:</b>', input$id_toll_plaza, sep = ' '),
-                          paste('<b>Address:</b>', address$coordinates.address, sep = ' '),
-                          sep = '\n')
-          )
+      output$id_map_gpt <- renderUI({
+        div(
+          map,
+          style = 'height: 90vh; overflow-y: auto;'
+        )
       })
       
       # show week picker
