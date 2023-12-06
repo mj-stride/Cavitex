@@ -129,30 +129,40 @@ server <- function(input, output, session) {
   
   observeEvent(
     input$id_search_range, {
+      # for checking folder
+      # if with available data
       date_start <- input$id_date_start
-
-      file <- paste(folder_path, date_start, sep = '\\')
       
       if (input$id_range == 'Time') {
         folder <- paste(folder_path, date_start, sep = '\\')
         
         if (file.exists(folder)) {
+          # for getting street depending on range of time
           time_start <- input$id_time_start
           time_end <- input$id_time_end
           
-          # print(strptime(time_start, '%R'))
-          # print(time_end)
+          # get street
+          street <- get_street(input$id_city, folder, strptime(time_start, '%R'), strptime(time_end, '%R'))
           
-          waze_draw_time(folder, date_start, strptime(time_start, '%R'), strptime(time_end, '%R'), input$id_type_range, 'Manila', '180: R. Magsaysay Blvd E', output)
-          
-          output$id_waze_output <- renderUI({
-            div(
-              plotOutput(
-                outputId = 'id_plot'
+          # show street
+          showModal(
+            modalDialog(
+              title = 'Choose location',
+              selectInput(
+                inputId = 'id_street',
+                label = 'Choose street:',
+                choices = street,
+                selectize = TRUE
               ),
-              style = 'height: 90vh; overflow-y: auto;'
+              easyClose = FALSE,
+              footer = div(
+                actionButton(
+                  inputId = 'id_waze_draw_time',
+                  label = 'Search'
+                )
+              )
             )
-          })
+          )
         } else {
           showModal(
             modalDialog(
@@ -170,6 +180,38 @@ server <- function(input, output, session) {
         waze_draw_date(folder_path, date_start, date_end, input$id_type_range)
       }
 
+    }
+  )
+  
+  observeEvent(
+    input$id_waze_draw_time, {
+      date_start <- input$id_date_start
+      folder <- paste(folder_path, date_start, sep = '\\')
+
+      time_start <- input$id_time_start
+      time_end <- input$id_time_end
+
+      waze_draw_time(
+        folder,
+        date_start,
+        strptime(time_start, '%R'),
+        strptime(time_end, '%R'),
+        input$id_type_range,
+        input$id_city,
+        input$id_street,
+        output
+      )
+      
+      removeModal()
+      
+      output$id_waze_output <- renderUI({
+        div(
+          plotOutput(
+            outputId = 'id_plot'
+          ),
+          style = 'height: 90vh; overflow-y: auto;'
+        )
+      })
     }
   )
   
