@@ -161,150 +161,147 @@ waze_draw_hour <- function(file_name, type) {
   return(map_combined)
 }
 
-waze_draw_time <- function(folder_path, start, end, type, city_, output) {
-  type_ <- gsub(' ', '_', toupper(type))
+waze_draw_time <- function(folder_path, date, start, end, type, city_, street_, output) {
+  type_ <- gsub(' ', '-', toupper(type)) # replace whitespace to -, and capitalize tpe
   
-  time_range <- seq(start, end, '1 min')
-  times <- strftime(time_range, '%H%M')
+  # get range per hour
+  # to know the start and end time of each graph will be made
+  range_hour <- seq(start, end, 'hour')
+  time_hour <- data.frame(time = range_hour)
   
-  raw_file <- data.frame(
-    filepath = paste(folder_path, '\\', times, '.json', sep = '')
-  )
+  x <- 1 # start of hour
+  y <- 2 # end of hour
+  z <- length(range_hour) # number of range_hour
   
-  x <- 1
-  y <- length(raw_file$filepath) + 1
-
-  while (x < y) {
-    print(x)
-    
-    if (x == y) {
+  while(x < z) {
+    if (x > z) {
+      # end of loop
       break
     } else {
-      if (file.exists(raw_file$filepath[x])) {
-        # print('exist')
-        
-        waze_data <- fromJSON(raw_file$filepath[x])
-        
-        dfalerts <- as.data.frame(waze_data$alerts)
-        
-        jams <- dfalerts %>% filter(type %in% c('JAM'))
-        dfjams <- jams %>% filter(city %in% c(city_))
-        
-        n <- length(dfjams$reportRating)
-
-        tryCatch({
-          # file name
-          png(file = paste(x, city_, '-', 'line_graph.png', sep = ''), height = 900, width = 1800, units = 'px')
-
-          # create line graph
-          plot(
-            dfjams$reportRating,
-            type = 'o',
-            col = 'green',
-            xlab = 'Street',
-            ylab = 'Report Rating',
-            main = city_
-          )
-          axis(
-            1,
-            at = seq(1, n, by = 1),
-            labels = FALSE,
-            tick = -0.01
-          )
-          text(
-            seq(1, n, by = 1),
-            par("usr")[3] - 0.2,
-            labels = dfjams$street[1:n],
-            srt = 45,
-            pos = 1,
-            offset = 0.5,
-            xpd = TRUE
-          )
-
-          # create file
-          dev.off()
-        },
-        error = function(cond) {
-          status <- c(500)
-          err <- data.frame(status)
-          return(err)
-        },
-        warning = function(cond) {
-          status <- c(500)
-          err <- data.frame(status)
-          return(err)
-        },
-        finally = {
-          message('Finally')
-        })
+      range_min <- seq(time_hour$time[x], time_hour$time[y], '1 min') # range per minute
+      time_range <- strftime(range_min, '%H%M') # convert time format
+      
+      # for creating folder and graph file
+      
+      # print(graph_file)
+      
+      file_name <- paste(strftime(time_hour$time[x], '%H%M'), strftime(time_hour$time[y], '%H%M'), city_, sep = '-')
+      graph_file <<- paste('D:\\Codes\\cavitex\\waze\\graph\\', date, '\\', file_name, sep = '')
+      
+      if (!file.exists(paste('D:\\Codes\\cavitex\\waze\\graph', date, sep = '\\'))) {
+        dir.create(file.path(paste('D:\\Codes\\cavitex\\waze\\graph', date, sep = '\\')))
       }
+      
+      # create data.frame of folder path
+      raw_file <- data.frame(
+        time = time_range,
+        filepath = paste(folder_path, '\\', time_range, '.json', sep = '')
+      )
+      
+      # create new data.frame of data to be plot in graph
+      create_df(raw_file, graph_file, type, city_, street_, output)
     }
     
     x <- x + 1
+    y <- y + 1
+  }
+}
+
+create_df <- function(raw_file, graph_file, type, city_, street_, output) {
+  report_rating <- data.frame()
+  
+  x <- 1 # start number
+  y <- length(raw_file$filepath) + 1 # number of file
+
+  while (x < y) {
+    
+    if (x == y) {
+      # end loop
+      break
+    } else {
+      # check if file exist
+      if (file.exists(raw_file$filepath[x])) {
+        waze_data <- fromJSON(raw_file$filepath[x]) # open json file
+
+        # create raw data frame
+        df <- as.data.frame(waze_data$alerts)
+        
+        # filter jam by city and street picked
+        dfjams <- df %>% filter(type %in% c('JAM')) %>%
+          filter(city %in% c(city_)) %>%
+          filter(street %in% c(street_))
+        
+        # check if NO report rating on json file
+        if (!identical(dfjams$reportRating, integer(0))) {
+          # if with report rating
+          # create list of be inserted in report_rating data frame
+          output <- c(dfjams$reportRating, raw_file$time[x])
+          
+          # insert to report_rating data frame
+          report_rating <- rbind(report_rating, output)
+        } else {
+          # if without report rating
+          # consider it as 0
+          output <- c(0, raw_file$time[x])
+          
+          # insert to report_rating data frame
+          report_rating <- rbind(report_rating, output)
+        }
+        
+      }
+    }
+
+    x <- x + 1
   }
   
-  # for (file in files) {
-  #   if (file.exists(file)) {
-  #     # D:\\Codes\\cavitex\\waze\\downloaded_waze\\2023-11-30\\1340.json
-  #     
-  #     waze_data <- fromJSON(file)
-  #     # print(waze_data)
-  #     
-  #     if (type_ == 'ALL') {
-  #       dfalerts <- as.data.frame(waze_data$alerts)
-  #       
-  #       dfjam <- dfalerts %>% filter(type %in% c('JAM'))
-  #       df_jam <- dfjam %>% filter(city %in% c(city))
-  #       # df_road <- dfalerts %>% filter(type %in% c('ROAD_CLOSED'))
-  #       # df_hazard <- dfalerts %>% filter(type %in% c('HAZARD'))
-  #       # df_accident <- dfalerts %>% filter(type %in% c('ACCIDENT'))
-  #       
-  #       n <- length(df_jam$reportRating)
-  #       print(n)
-  #       
-  #       tryCatch({
-  #         
-  #         line_graph <<- plot(
-  #           df_jam$reportRating,
-  #           # names.arg = df_jam$street,
-  #           type = 'o',
-  #           col = 'green',
-  #           xlab = 'Street',
-  #           ylab = 'Report Rating',
-  #           main = city
-  #         )
-  #         axis(
-  #           1,
-  #           at = seq(1, n, by = 1),
-  #           labels = FALSE,
-  #           tick = -0.01
-  #         )
-  #         text(
-  #           seq(1, n, by = 1),
-  #           par("usr")[3] - 0.2,
-  #           labels = df_jam$street[1:n],
-  #           srt = 45,
-  #           pos = 1,
-  #           xpd = TRUE
-  #         )
-  #       },
-  #       error = function(cond) {
-  #         status <- c(500)
-  #         err <- data.frame(status)
-  #         return(err)
-  #       },
-  #       finally = {
-  #         message('Finally')
-  #       })
-  #       
-  #       # create file
-  #       dev.off()
-  #     }
-  #   }
-  #   # else {
-  #   #   print(paste('file not exist:', file, sep = ' '))
-  #   # }
-  # }
+  # name of report_rating
+  colnames(report_rating) <- c('alert', 'time')
+  
+  # create graph
+  create_graph(report_rating, graph_file, city_, output)
+}
+
+create_graph <- function(report_rating, graph_file, city_, output) {
+  # create folder and file
+  # graph_file is created at waze_draw_time()
+  png(file = paste(graph_file, '.png', sep = ''), height = 800, width = 1500, units = 'px')
+  
+  n <- length(report_rating$time) # count rows
+  
+  tryCatch({
+    # create line graph
+    plot(
+      report_rating$alert,
+      type = 'o',
+      col = 'green',
+      xlab = 'Time',
+      xaxt = 'n',
+      ylab = 'Report Rating',
+      main = city_
+    )
+    axis( # change bottom label to time
+      1,
+      at = seq(1, n, by = 1),
+      labels = report_rating$time[1:n],
+      tick = -0.01
+    )
+  },
+  error = function(cond) {
+    status <- c(500)
+    err <- data.frame(status)
+    return(err)
+  },
+  warning = function(cond) {
+    status <- c(500)
+    err <- data.frame(status)
+    return(err)
+  },
+  finally = {
+    message('Finally')
+  })
+  
+  # create file
+  dev.off()
 }
 
 waze_draw_date <- function(folder_path, start, end, type) {

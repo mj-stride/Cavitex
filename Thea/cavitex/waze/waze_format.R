@@ -5,6 +5,9 @@ library(lubridate)
 
 date_now = format(Sys.time(), '%Y-%m-%d')
 
+start_time = c('06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '24:00', '01:00', '02:00', '03:00', '04:00', '05:00')
+end_time = c('12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '24:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00')
+
 waze_hour <- function() {
   ui <- sidebarLayout(
     sidebarPanel(
@@ -67,18 +70,32 @@ waze_range <- function(r) {
         max = '2024-12-31',
         value = date_now
       ),
-      timeInput(
+      selectInput(
         inputId = 'id_time_start',
-        label = 'Choose start time (hour:minute):',
-        value = strptime('06:00:00', '%R'),
-        seconds = FALSE
+        label = 'Choose start time:',
+        choices = start_time,
+        selected = '06:00',
+        width = '100%'
       ),
-      timeInput(
+      selectInput(
         inputId = 'id_time_end',
-        label = 'Choose end time (hour:minute):',
-        value = Sys.time(),
-        seconds = FALSE
+        label = 'Choose end time:',
+        choices = start_time,
+        selected = '12:00',
+        width = '100%'
       ),
+      # timeInput(
+      #   inputId = 'id_time_start',
+      #   label = 'Choose start time (hour:minute):',
+      #   value = strptime('06:00:00', '%R'),
+      #   seconds = FALSE
+      # ),
+      # timeInput(
+      #   inputId = 'id_time_end',
+      #   label = 'Choose end time (hour:minute):',
+      #   value = Sys.time(),
+      #   seconds = FALSE
+      # ),
       selectInput(
         inputId = 'id_type_range',
         label = 'Choose type:',
@@ -206,4 +223,8 @@ waze_range <- function(r) {
   # }
   
   return(ui)
+}
+
+get_city <- function(folder_path, start, end) {
+  
 }

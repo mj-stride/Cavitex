@@ -118,9 +118,7 @@ server <- function(input, output, session) {
       )
     )
   })
-
-  # default_range(input, output)
-
+  
   observeEvent(
     input$id_range, {
       output$id_range_format <- renderUI({
@@ -142,7 +140,10 @@ server <- function(input, output, session) {
           time_start <- input$id_time_start
           time_end <- input$id_time_end
           
-          waze_draw_time(folder, time_start, time_end, input$id_type_range, 'Imus', output)
+          # print(strptime(time_start, '%R'))
+          # print(time_end)
+          
+          waze_draw_time(folder, date_start, strptime(time_start, '%R'), strptime(time_end, '%R'), input$id_type_range, 'Manila', '180: R. Magsaysay Blvd E', output)
           
           output$id_waze_output <- renderUI({
             div(
@@ -152,13 +153,6 @@ server <- function(input, output, session) {
               style = 'height: 90vh; overflow-y: auto;'
             )
           })
-          
-          # output$id_waze_output <- renderUI({
-          #   div(
-          #     graph,
-          #     style = 'height: 90vh; overflow-y: auto;'
-          #   )
-          # })
         } else {
           showModal(
             modalDialog(
