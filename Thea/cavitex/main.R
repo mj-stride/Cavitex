@@ -129,6 +129,7 @@ server <- function(input, output, session) {
   
   observeEvent(
     input$id_search_range, {
+      print('STREET SEARCH')
       # for checking folder
       # if with available data
       date_start <- input$id_date_start
@@ -152,11 +153,13 @@ server <- function(input, output, session) {
                 inputId = 'id_street',
                 label = 'Choose street:',
                 choices = street,
+                selected = street[1],
                 selectize = TRUE
               ),
               easyClose = FALSE,
               footer = div(
                 actionButton(
+                  class = 'id_search',
                   inputId = 'id_waze_draw_time',
                   label = 'Search'
                 )
@@ -187,7 +190,7 @@ server <- function(input, output, session) {
     input$id_waze_draw_time, {
       date_start <- input$id_date_start
       folder <- paste(folder_path, date_start, sep = '\\')
-
+      
       time_start <- input$id_time_start
       time_end <- input$id_time_end
 
@@ -206,10 +209,23 @@ server <- function(input, output, session) {
       
       output$id_waze_output <- renderUI({
         div(
-          plotOutput(
-            outputId = 'id_plot'
+          style = 'height: 100vh; width: 100vw;',
+          div(
+            style = 'height: 50vh; background-color: red;',
+            leafletOutput(
+              outputId = 'id_map_time'
+            )
           ),
-          style = 'height: 90vh; overflow-y: auto;'
+          div(
+            style = 'height: 50vh; background-color: blue; overflow-y: auto;',
+            uiOutput(
+              outputId = 'id_graph_time'
+            )
+          )
+          # plotOutput(
+          #   outputId = 'id_plot'
+          # ),
+          # style = 'height: 90vh; overflow-y: auto;'
         )
       })
     }

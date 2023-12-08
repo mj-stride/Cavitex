@@ -163,7 +163,6 @@ waze_draw_hour <- function(file_name, type) {
 
 waze_draw_time <- function(folder_path, date, start, end, type, city_, street_, output) {
   type_ <- gsub(' ', '_', toupper(type))
-  
   # get range per hour
   # to know the start and end time of each graph will be made
   range_hour <- seq(start, end, 'hour')
@@ -178,18 +177,21 @@ waze_draw_time <- function(folder_path, date, start, end, type, city_, street_, 
       # end of loop
       break
     } else {
+      street <- gsub('[[:punct:]]', '', street_)
+      
       range_min <- seq(time_hour$time[x], time_hour$time[y], '1 min') # range per minute
       time_range <- strftime(range_min, '%H%M') # convert time format
       
       # for creating folder and graph file
-      
-      # print(graph_file)
-      
-      file_name <- paste(strftime(time_hour$time[x], '%H%M'), strftime(time_hour$time[y], '%H%M'), city_, sep = '-')
-      graph_file <<- paste('D:\\Codes\\cavitex\\waze\\graph\\', date, '\\', file_name, sep = '')
+      file_name <- paste(street, strftime(time_hour$time[x], '%H%M'), strftime(time_hour$time[y], '%H%M'), sep = '-')
+      graph_file <<- paste('D:\\Codes\\cavitex\\waze\\graph', date, city_, file_name, sep = '\\')
       
       if (!file.exists(paste('D:\\Codes\\cavitex\\waze\\graph', date, sep = '\\'))) {
         dir.create(file.path(paste('D:\\Codes\\cavitex\\waze\\graph', date, sep = '\\')))
+        dir.create(file.path(paste('D:\\Codes\\cavitex\\waze\\graph', date, city_, sep = '\\')))
+        
+      } else if (!file.exists(paste('D:\\Codes\\cavitex\\waze\\graph', date, city_, sep = '\\'))) {
+        dir.create(file.path(paste('D:\\Codes\\cavitex\\waze\\graph', date, city_, sep = '\\')))
       }
       
       # create data.frame of folder path
@@ -227,31 +229,142 @@ create_df <- function(raw_file, graph_file, type_, city_, street_, output) {
         df <- as.data.frame(waze_data$alerts)
         
         if (type_ == 'ALL') {
+          dfalerts <- df %>% filter(city %in% c(city_)) %>%
+            filter(street %in% c(street_))
+          
+          # check if with location
+          # get coordinates
+          if (length(dfalerts$location$x) > 0) {
+            lat.y <<- as.double(dfalerts$location$y)
+            lng.x <<- as.double(dfalerts$location$x)
+          }
+          
+          # if with report rating
+          # create list of be inserted in report_rating data frame
+          if (identical(dfalerts$type, 'JAM')) {
+            # check if NO report rating on json file
+            if (!identical(dfalerts$reportRating, integer(0))) {
+              # if with report rating
+              # check if reportRating has more than 1 report
+              if (length(dfalerts$reportRating) > 1) {
+                output_data <- c(dfalerts$reportRating[2], 0, 0, 0, raw_file$time[x])
+
+                report_rating <- rbind(report_rating, output_data)
+              } else {
+                output_data <- c(dfalerts$reportRating, 0, 0, 0, raw_file$time[x])
+
+                report_rating <- rbind(report_rating, output_data)
+              }
+            } else {
+              output_data <- c(0, 0, 0, 0, raw_file$time[x])
+              
+              report_rating <- rbind(report_rating, output_data)
+            }
+
+          } else if (identical(dfalerts$type, 'ROAD_CLOSED')) {
+            # check if NO report rating on json file
+            if (!identical(dfalerts$reportRating, integer(0))) {
+              # if with report rating
+              # check if reportRating has more than 1 report
+              if (length(dfalerts$reportRating) > 1) {
+                output_data <- c(0, dfalerts$reportRating[2], 0, 0, raw_file$time[x])
+
+                report_rating <- rbind(report_rating, output_data)
+              } else {
+                output_data <- c(0, dfalerts$reportRating, 0, 0, raw_file$time[x])
+
+                report_rating <- rbind(report_rating, output_data)
+              }
+            } else {
+              output_data <- c(0, 0, 0, 0, raw_file$time[x])
+              
+              report_rating <- rbind(report_rating, output_data)
+            }
+
+          } else if (identical(dfalerts$type, 'HAZARD')) {
+            # check if NO report rating on json file
+            if (!identical(dfalerts$reportRating, integer(0))) {
+              # if with report rating
+              # check if reportRating has more than 1 report
+              if (length(dfalerts$reportRating) > 1) {
+                output_data <- c(0, 0, dfalerts$reportRating[2], 0, raw_file$time[x])
+
+                report_rating <- rbind(report_rating, output_data)
+              } else {
+                output_data <- c(0, 0, dfalerts$reportRating, 0, raw_file$time[x])
+
+                report_rating <- rbind(report_rating, output_data)
+              }
+            } else {
+              output_data <- c(0, 0, 0, 0, raw_file$time[x])
+              
+              report_rating <- rbind(report_rating, output_data)
+            }
+
+          } else if (identical(dfalerts$type, 'ACCIDENT')) {
+            # check if NO report rating on json file
+            if (!identical(dfalerts$reportRating, integer(0))) {
+              # if with report rating
+              # check if reportRating has more than 1 report
+              if (length(dfalerts$reportRating) > 1) {
+                output_data <- c(0, 0, 0, dfalerts$reportRating[2], raw_file$time[x])
+
+                report_rating <- rbind(report_rating, output_data)
+              } else {
+                output_data <- c(0, 0, 0, dfalerts$reportRating, raw_file$time[x])
+
+                report_rating <- rbind(report_rating, output_data)
+              }
+            } else {
+              output_data <- c(0, 0, 0, 0, raw_file$time[x])
+              
+              report_rating <- rbind(report_rating, output_data)
+            }
+          } else {
+            output_data <- c(0, 0, 0, 0, raw_file$time[x])
+            
+            report_rating <- rbind(report_rating, output_data)
+          }
           
         } else {
-          # filter jam by city and street picked
+          # filter type  by city and street picked
           dfalerts <- df %>% filter(type %in% c(type_)) %>%
             filter(city %in% c(city_)) %>%
             filter(street %in% c(street_))
           
+          # check if with location
+          # get coordinates
+          if (length(dfalerts$location$x) > 0) {
+            lat.y <<- as.double(dfalerts$location$y)
+            lng.x <<- as.double(dfalerts$location$x)
+          }
+          
           # check if NO report rating on json file
           if (!identical(dfalerts$reportRating, integer(0))) {
             # if with report rating
-            # create list of be inserted in report_rating data frame
-            output <- c(dfalerts$reportRating, raw_file$time[x])
-            
-            # insert to report_rating data frame
-            report_rating <- rbind(report_rating, output)
+            # check if reportRating has more than 1 report
+            if (length(dfalerts$reportRating) > 1) {
+              # create list of be inserted in report_rating data frame
+              output_data <- c(dfalerts$reportRating[2], raw_file$time[x])
+              
+              # insert to report_rating data frame
+              report_rating <- rbind(report_rating, output_data)
+            } else {
+              # create list of be inserted in report_rating data frame
+              output_data <- c(dfalerts$reportRating, raw_file$time[x])
+              
+              # insert to report_rating data frame
+              report_rating <- rbind(report_rating, output_data)
+            }
           } else {
             # if without report rating
             # consider it as 0
-            output <- c(0, raw_file$time[x])
+            output_data <- c(0, raw_file$time[x])
             
             # insert to report_rating data frame
-            report_rating <- rbind(report_rating, output)
+            report_rating <- rbind(report_rating, output_data)
           }
         }
-        
       }
     }
 
@@ -260,35 +373,86 @@ create_df <- function(raw_file, graph_file, type_, city_, street_, output) {
   
   if (type_ == 'ALL') {
     # name of report_rating
-    colnames(report_rating) <- c('JAM', 'ROAD_CLOSED', 'HAZARD', 'ACCIDENT', 'TIME')
-    
-    # create graph
-    create_graph(report_rating, graph_file, type_, city_, street_, output)
+    if (length(report_rating) > 0) {
+      colnames(report_rating) <- c('jam', 'road_closed', 'hazard', 'accident', 'time')
+      
+      # create graph
+      create_graph(report_rating, graph_file, type_, city_, street_, output)
+    } else {
+      print('no data')
+    }
   } else {
+    print('here custom')
     # name of report_rating
-    colnames(report_rating) <- c('TYPE', 'TIME')
-    
+    colnames(report_rating) <- c('data', 'time')
+
     # create graph
     create_graph(report_rating, graph_file, type_, city_, street_, output)
   }
 }
 
 create_graph <- function(report_rating, graph_file, type, city_, street, output) {
-  print(report_rating)
-  
   # create folder and file
   # graph_file is created at waze_draw_time()
   png(file = paste(graph_file, '.png', sep = ''), height = 800, width = 1500, units = 'px')
   
-  n <- length(report_rating$TIME) # count rows
+  n <- length(report_rating$time) # count rows
   
   tryCatch({
     if (type == 'ALL') {
-      
+      plot(
+        report_rating$jam,
+        type = 'o',
+        col = 'green',
+        xlab = 'Time',
+        xaxt = 'n',
+        ylab = 'Report Rating',
+        main = paste(street, ', ', city_, ' - ', type)
+      )
+      lines(
+        report_rating$time,
+        report_rating$road_closed,
+        type = 'o',
+        col = 'blue'
+      )
+      lines(
+        report_rating$time,
+        report_rating$hazard,
+        type = 'o',
+        col = 'orange'
+      )
+      lines(
+        report_rating$time,
+        report_rating$accident,
+        type = 'o',
+        col = 'red'
+      )
+      legend(
+        'topright',
+        legend = c(
+          'Jam',
+          'Road Closed',
+          'Hazard',
+          'Accident'
+        ),
+        lty = 1,
+        col = c(
+          'green',
+          'blue',
+          'orange',
+          'red'
+        )
+      )
+      axis( # change bottom label to time
+        1,
+        at = seq(1, n, by = 1),
+        labels = report_rating$time[1:n],
+        tick = -0.01
+      )
     } else {
       # create line graph
       plot(
-        report_rating$TYPE,
+        report_rating$data,
         type = 'o',
         col = 'green',
         xlab = 'Time',
@@ -299,7 +463,7 @@ create_graph <- function(report_rating, graph_file, type, city_, street, output)
       axis( # change bottom label to time
         1,
         at = seq(1, n, by = 1),
-        labels = report_rating$TIME[1:n],
+        labels = report_rating$time[1:n],
         tick = -0.01
       )
     }
@@ -320,6 +484,16 @@ create_graph <- function(report_rating, graph_file, type, city_, street, output)
   
   # create file
   dev.off()
+  
+  output$id_map_time <- renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      addMarkers(
+        lng = lng.x,
+        lat = lat.y,
+        popup = paste(street, city_, sep = ', ')
+      )
+  })
 }
 
 waze_draw_date <- function(folder_path, start, end, type) {

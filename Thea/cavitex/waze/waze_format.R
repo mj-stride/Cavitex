@@ -194,6 +194,6 @@ get_street <- function(city_, folder_path, start, end) {
     
     x <- x + 1
   }
-
+  
   return(street_list)
 }
