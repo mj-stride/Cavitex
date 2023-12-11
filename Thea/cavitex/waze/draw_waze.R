@@ -162,6 +162,8 @@ waze_draw_hour <- function(file_name, type) {
 }
 
 waze_draw_time <- function(folder_path, date, start, end, type, city_, street_, output) {
+  graph_file_list <- list()
+  
   type_ <- gsub(' ', '_', toupper(type))
   # get range per hour
   # to know the start and end time of each graph will be made
@@ -175,6 +177,8 @@ waze_draw_time <- function(folder_path, date, start, end, type, city_, street_, 
   while(x < z) {
     if (x > z) {
       # end of loop
+      print('end')
+      # return(graph_file_list)
       break
     } else {
       street <- gsub('[[:punct:]]', '', street_)
@@ -186,6 +190,9 @@ waze_draw_time <- function(folder_path, date, start, end, type, city_, street_, 
       file_name <- paste(street, strftime(time_hour$time[x], '%H%M'), strftime(time_hour$time[y], '%H%M'), sep = '-')
       graph_file <<- paste('D:\\Codes\\cavitex\\waze\\graph', date, city_, file_name, sep = '\\')
       
+      graph_file_list <- append(graph_file_list, paste(graph_file, '.png', sep = ''))
+      
+      # check if folder exist
       if (!file.exists(paste('D:\\Codes\\cavitex\\waze\\graph', date, sep = '\\'))) {
         dir.create(file.path(paste('D:\\Codes\\cavitex\\waze\\graph', date, sep = '\\')))
         dir.create(file.path(paste('D:\\Codes\\cavitex\\waze\\graph', date, city_, sep = '\\')))
@@ -207,6 +214,8 @@ waze_draw_time <- function(folder_path, date, start, end, type, city_, street_, 
     x <- x + 1
     y <- y + 1
   }
+  
+  return(graph_file_list)
 }
 
 create_df <- function(raw_file, graph_file, type_, city_, street_, output) {
@@ -256,6 +265,7 @@ create_df <- function(raw_file, graph_file, type_, city_, street_, output) {
                 report_rating <- rbind(report_rating, output_data)
               }
             } else {
+              # if without report rating
               output_data <- c(0, 0, 0, 0, raw_file$time[x])
               
               report_rating <- rbind(report_rating, output_data)
@@ -276,6 +286,7 @@ create_df <- function(raw_file, graph_file, type_, city_, street_, output) {
                 report_rating <- rbind(report_rating, output_data)
               }
             } else {
+              # if without report rating
               output_data <- c(0, 0, 0, 0, raw_file$time[x])
               
               report_rating <- rbind(report_rating, output_data)
@@ -296,6 +307,7 @@ create_df <- function(raw_file, graph_file, type_, city_, street_, output) {
                 report_rating <- rbind(report_rating, output_data)
               }
             } else {
+              # if without report rating
               output_data <- c(0, 0, 0, 0, raw_file$time[x])
               
               report_rating <- rbind(report_rating, output_data)
@@ -321,6 +333,7 @@ create_df <- function(raw_file, graph_file, type_, city_, street_, output) {
               report_rating <- rbind(report_rating, output_data)
             }
           } else {
+            # if without report rating
             output_data <- c(0, 0, 0, 0, raw_file$time[x])
             
             report_rating <- rbind(report_rating, output_data)
@@ -404,7 +417,7 @@ create_graph <- function(report_rating, graph_file, type, city_, street, output)
         report_rating$jam,
         type = 'o',
         col = 'green',
-        xlab = 'Time',
+        xlab = paste('Time:', report_rating$time[1], '-' , report_rating$time[n], sep = ' '),
         xaxt = 'n',
         ylab = 'Report Rating',
         main = paste(street, ', ', city_, ' - ', type)
@@ -486,7 +499,9 @@ create_graph <- function(report_rating, graph_file, type, city_, street, output)
   dev.off()
   
   output$id_map_time <- renderLeaflet({
-    leaflet() %>%
+    leaflet(
+      height = 250
+    ) %>%
       addTiles() %>%
       addMarkers(
         lng = lng.x,

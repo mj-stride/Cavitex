@@ -109,11 +109,8 @@ server <- function(input, output, session) {
       mainPanel(
         style = 'height: 100%;',
         width = 9,
-        withSpinner(
-          color = '#46923C',
-          uiOutput(
-            outputId = 'id_waze_output'
-          )
+        uiOutput(
+          outputId = 'id_range_data'
         )
       )
     )
@@ -129,7 +126,15 @@ server <- function(input, output, session) {
   
   observeEvent(
     input$id_search_range, {
-      print('STREET SEARCH')
+      output$id_range_data <- renderUI({
+        withSpinner(
+          color = '#46923C',
+          uiOutput(
+            outputId = 'id_waze_output'
+          )
+        )
+      })
+      
       # for checking folder
       # if with available data
       date_start <- input$id_date_start
@@ -158,6 +163,7 @@ server <- function(input, output, session) {
               ),
               easyClose = FALSE,
               footer = div(
+                modalButton('Close'),
                 actionButton(
                   class = 'id_search',
                   inputId = 'id_waze_draw_time',
@@ -194,7 +200,7 @@ server <- function(input, output, session) {
       time_start <- input$id_time_start
       time_end <- input$id_time_end
 
-      waze_draw_time(
+      waze_graph <<- waze_draw_time(
         folder,
         date_start,
         strptime(time_start, '%R'),
@@ -209,27 +215,38 @@ server <- function(input, output, session) {
       
       output$id_waze_output <- renderUI({
         div(
-          style = 'height: 100vh; width: 100vw;',
+          style = 'height: 100%; width: 100vw;',
           div(
-            style = 'height: 50vh; background-color: red;',
+            style = 'height: 50%;',
             leafletOutput(
               outputId = 'id_map_time'
             )
           ),
           div(
-            style = 'height: 50vh; background-color: blue; overflow-y: auto;',
+            style = 'height: 100vh; overflow-y: auto; margin-bottom: 20px;',
             uiOutput(
               outputId = 'id_graph_time'
             )
           )
-          # plotOutput(
-          #   outputId = 'id_plot'
-          # ),
-          # style = 'height: 90vh; overflow-y: auto;'
         )
       })
     }
   )
+  
+  output$id_graph_time <- renderUI({
+    waze_graph %>% map(
+      function(graph) {
+        renderImage(
+          list(
+            src = graph,
+            width = '50%',
+            height = '100%'
+          ),
+          deleteFile = FALSE
+        )
+      }
+    )
+  })
   
   # ========== WAZE FEEDS PER HOUR ========== #
   output$id_waze_hour <- renderUI({
