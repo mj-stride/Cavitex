@@ -215,7 +215,7 @@ server <- function(input, output, session) {
       
       output$id_waze_output <- renderUI({
         div(
-          style = 'height: 100%; width: 100vw;',
+          style = 'height: 100%; width: 700vw;',
           div(
             style = 'height: 50%;',
             leafletOutput(
@@ -224,7 +224,7 @@ server <- function(input, output, session) {
           ),
           div(
             style = 'height: 100vh; overflow-y: auto; margin-bottom: 20px;',
-            uiOutput(
+            imageOutput(
               outputId = 'id_graph_time'
             )
           )
@@ -233,20 +233,20 @@ server <- function(input, output, session) {
     }
   )
   
-  output$id_graph_time <- renderUI({
-    waze_graph %>% map(
-      function(graph) {
-        renderImage(
-          list(
-            src = graph,
-            width = '50%',
-            height = '100%'
-          ),
-          deleteFile = FALSE
-        )
-      }
-    )
-  })
+  # output$id_graph_time <- renderUI({
+  #   waze_graph %>% map(
+  #     function(graph) {
+  #       renderImage(
+  #         list(
+  #           src = graph,
+  #           width = '50%',
+  #           height = '100%'
+  #         ),
+  #         deleteFile = FALSE
+  #       )
+  #     }
+  #   )
+  # })
   
   # ========== WAZE FEEDS PER HOUR ========== #
   output$id_waze_hour <- renderUI({
